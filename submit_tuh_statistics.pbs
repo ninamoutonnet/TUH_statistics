@@ -1,0 +1,11 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=16:mem=128gb
+#PBS -l walltime=03:00:00
+ 
+module load anaconda3/personal
+source activate EEG_pipeline_V4
+
+cd $PBS_O_WORKDIR
+
+python tuh_data_statistics.py
+

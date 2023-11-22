@@ -26,8 +26,16 @@ def set_bipolar_tcp(raw, file_path):
     sample_cathode = cathode[index]
     sample_bipolar_ch_names = bipolar_ch_names[index]
     
-    raw = mne.set_bipolar_reference(raw, anode=sample_anode, cathode=sample_cathode, ch_name=sample_bipolar_ch_names, 
-                                    verbose='WARNING')
+    # if it is labeled as 01_tcp_ar, try to set the bipolar ref according to that first, then if there is an error, try to set it using 03_tcp_ar_a. This problem arises when samples are misclassfied. E.g. /projects/tuh_eeg/downloads/tuh_eeg_seizure/v2.0.0/edf/eval/aaaaaqvx/s010_2015_08_27/01_tcp_ar/aaaaaqvx_s010_t007.edf is not 01_tcp_ar because it misses the A1-REF sample
+    try:
+        raw = mne.set_bipolar_reference(raw, anode=sample_anode, cathode=sample_cathode, ch_name=sample_bipolar_ch_names, verbose='WARNING')
+    except:
+        if index == 0:
+            raw = mne.set_bipolar_reference(raw, anode=anode[2], cathode=cathode[2], ch_name=bipolar_ch_names[2], verbose='WARNING')
+        elif index == 1: 
+            raw = mne.set_bipolar_reference(raw, anode=anode[3], cathode=cathode[3], ch_name=bipolar_ch_names[3], verbose='WARNING')
+    
+   
     
     return raw
 
@@ -103,7 +111,7 @@ def parse_term_based_annotations_from_csv_file(file_path):
 
 
 def main():
-    TUH_EEG = ('/rds/general/user/nm2318/home/projects/scott_data_tuh/live/tuh_eeg_seizure/')
+    TUH_EEG = ('/rds/general/user/nm2318/home/projects/scott_data_tuh/live/tuh_eeg_seizure/v2.0.0/edf/eval/')
     file_paths = glob.glob(os.path.join(TUH_EEG, '**/*.edf'), recursive=True)
     channel_names = {}
     age_dict = {}
@@ -114,8 +122,13 @@ def main():
     if (debug and len(file_paths)>5):
             file_paths = file_paths[0:5]
 
+    print('Here') 
+    print()
 
     for file_path in file_paths:
+        # print file_path for debugging purposes when using the HPC
+        print(file_path)
+        
         # read EDF file
         raw = mne.io.read_raw_edf(file_path, preload=True, verbose='WARNING')
         for chname in raw.info['ch_names']:
@@ -176,6 +189,7 @@ def main():
 
         # populate the raw list
         raw_list.append(raw)
+
     
     # write the output to a pickle file: 
     with open('results/tuh_eeg_seizure__debug_true__raw_list.pickle', 'wb') as handle:
